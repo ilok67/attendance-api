@@ -24,10 +24,11 @@ app.setErrorHandler((error, _request, reply) => {
     });
   }
 
-  if ((error as any).validation) {
+  const err = error as Error & { validation?: unknown };
+  if (err.validation) {
     return reply.status(400).send({
       error: 'داده ورودی نامعتبر است',
-      details: (error as any).validation,
+      details: err.validation,
     });
   }
 
@@ -44,6 +45,10 @@ async function main() {
       'http://localhost',
       'https://tauri.localhost',
       'tauri://localhost',
+      // Cloudflare Pages / production frontends — add your real domain:
+      /\.pages\.dev$/,
+      /\.onrender\.com$/,
+      /\.vercel\.app$/,
     ],
     credentials: true,
   });
@@ -70,7 +75,7 @@ async function main() {
   console.log(`API running on http://localhost:${port}`);
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
   console.error(err);
   process.exit(1);
 });

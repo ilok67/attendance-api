@@ -4,7 +4,6 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
-    "types": ["node"],
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
@@ -12,9 +11,9 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "declaration": false,
-    "sourceMap": true
+    "moduleDetection": "force",
+    "noEmitOnError": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "scripts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

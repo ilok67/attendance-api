@@ -40,7 +40,7 @@ async function main() {
   await app.register(cors, {
     origin: [
       'http://localhost:5173',
-      'https://attendance-web.iloktest6.workers.dev'
+      'https://attendance-web.iloktest6.workers.dev',
       'http://localhost:4173',
       'capacitor://localhost',
       'http://localhost',

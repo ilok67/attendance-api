@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  superadmin
+  deputy
+  teacher
+}
+
+enum Shift {
+  morning
+  afternoon
+}
+
+enum AttendanceStatus {
+  present
+  excused
+  unexcused
+  late
+  early
+}
+
+model School {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  active    Boolean  @default(true)
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users      User[]
+  classes    Class[]
+  students   Student[]
+  attendance Attendance[]
+  auditLogs  AuditLog[]
+
+  @@map("schools")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  schoolId  String?  @map("school_id") // null for superadmin
+  username  String
+  name      String
+  role      Role
+  salt      String   // server salt
+  hash      String   // scrypt of client hash
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  school       School?      @relation(fields: [schoolId], references: [id])
+  classes      Class[]      @relation("TeacherClasses")
+  attendance   Attendance[] @relation("RecordedBy")
+  auditLogs    AuditLog[]
+
+  @@unique([schoolId, username])
+  @@map("users")
+}
+
+model Class {
+  id           String   @id @default(cuid())
+  schoolId     String   @map("school_id")
+  name         String
+  grade        Int      // 1-6 for elementary
+  shift        Shift
+  teacherId    String?  @map("teacher_id")
+  academicYear String   @map("academic_year") // e.g. "1403-1404"
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  school     School      @relation(fields: [schoolId], references: [id])
+  teacher    User?       @relation("TeacherClasses", fields: [teacherId], references: [id])
+  students   Student[]
+  attendance Attendance[]
+
+  @@unique([schoolId, name, academicYear, shift])
+  @@map("classes")
+}
+
+model Student {
+  id          String   @id @default(cuid())
+  schoolId    String   @map("school_id")
+  classId     String   @map("class_id")
+  fullName    String   @map("full_name")
+  studentCode String   @map("student_code")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  school     School       @relation(fields: [schoolId], references: [id])
+  class      Class        @relation(fields: [classId], references: [id])
+  attendance Attendance[]
+
+  @@unique([schoolId, studentCode])
+  @@map("students")
+}
+
+model Attendance {
+  id          String           @id @default(cuid())
+  schoolId    String           @map("school_id")
+  studentId   String           @map("student_id")
+  classId     String           @map("class_id")
+  date        DateTime         @db.Date
+  shift       Shift
+  status      AttendanceStatus
+  note        String?
+  recordedBy  String?          @map("recorded_by")
+  history     Json             @default("[]")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  school   School  @relation(fields: [schoolId], references: [id])
+  student  Student @relation(fields: [studentId], references: [id])
+  class    Class   @relation(fields: [classId], references: [id])
+  recorder User?   @relation("RecordedBy", fields: [recordedBy], references: [id])
+
+  @@unique([schoolId, studentId, date, shift])
+  @@map("attendance")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  schoolId  String?  @map("school_id")
+  userId    String?  @map("user_id")
+  action    String
+  entity    String?
+  entityId  String?  @map("entity_id")
+  details   Json?
+  ip        String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  school School? @relation(fields: [schoolId], references: [id])
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
